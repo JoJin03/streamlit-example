@@ -1,40 +1,106 @@
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer
 
+# Corrected direct URL of your background image
+background_image_url = 'https://live.staticflickr.com/65535/53597581524_260942e41a_b.jpg'
+
+# Inject CSS for the background image using a placeholder
+background_placeholder = st.empty()
+background_placeholder.markdown(f"""
+<style>
+.stApp {{
+    background-image: url({background_image_url});
+    background-size: cover; /* Try changing this to 'contain' or '100% 100%' to see which works better for you */
+    background-position: center; /* This ensures the image is centered */
+    background-repeat: no-repeat; /* Prevents the image from repeating */
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# Define the categorization function
+def categorize_waste_simple(user_input):
+    categories = {
+        "plastic": ["plastic", "bottle", "polyethylene", "polypropylene", "packaging"],
+        "food": ["food", "peel", "leftover", "fruit", "vegetable", "meat", "banana peel", "bread", "compost", "rice", "banana", "coffee", "coffee grounds", "juice","apple" ],
+        "paper": ["paper", "cardboard", "newspaper", "magazine", "book", "note", "envelope"]
+    }
+    for category, keywords in categories.items():
+        if any(keyword in user_input for keyword in keywords):
+            return category
+    return "paper"  # Default to paper if no other category matches
+
+# Define a callback function to update UI based on user input
+def update_category():
+    user_input = st.session_state.user_input.lower()
+    category = categorize_waste_simple(user_input)
+    # Update the UI elements or state variables here
+    # Note: Implement necessary updates based on categorization
+
+# Define button styling and logic
+def create_button(label, background_color, emoji, disabled=False, highlight=False):
+    glow_class = "glow_effect" if highlight else ""
+    disabled_attribute = "disabled" if disabled else ""
+    button_html = f"""
+        <button class='styled_button {glow_class}' style='background-color: {background_color};' {disabled_attribute}>
+            {emoji} {label}
+        </button>
+    """
+    return button_html
+
+# Global style for buttons and glowing effect
+button_container_style = """
+<style>
+    .button_container {
+        display: flex;
+        gap: 10px;
+        justify-content: start;
+        flex-wrap: wrap;
+    }
+    .styled_button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 16px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 20px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 12px;
+        transition: box-shadow 0.3s ease;
+    }
+    .styled_button:hover {
+        background-color: #45a049;
+    }
+    .glow_effect {
+        box-shadow: 0 0 30px #EE4B2B;
+    }
+</style>
 """
-# Welcome to Streamlit!
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Streamlit application UI
+st.title('UCD Waste Ninja 🥷')
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+st.header("Describe Your Trash")
+user_input = st.text_input("What are you disposing of?", key="user_input", on_change=update_category).lower()
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+# Categorize user input
+category = categorize_waste_simple(user_input)
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+# Apply styles
+st.markdown(button_container_style, unsafe_allow_html=True)
+st.markdown("<div class='button_container'>", unsafe_allow_html=True)
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+# Generate and display buttons with conditional highlighting
+buttons_html = (
+    create_button('Paper', 'black', '📄', disabled=False, highlight=(category == "paper")) +
+    create_button('Plastic', 'blue', '♻️', disabled=False, highlight=(category == "plastic")) +
+    create_button('Food', 'brown', '🍎', disabled=False, highlight=(category == "food"))
+)
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+st.markdown(buttons_html, unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+st.header("Or, Show Us Your Trash")
+webrtc_streamer(key="trash-webcam")
