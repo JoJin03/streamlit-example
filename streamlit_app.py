@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer
+from streamlit_webrtc import webrtc_streamer, RTCConfiguration
 
 # Corrected direct URL of your background image
 background_image_url = 'https://live.staticflickr.com/65535/53597581524_260942e41a_b.jpg'
@@ -83,10 +83,10 @@ button_container_style = """
 st.title('UCD Waste Ninja 🥷')
 
 st.header("Describe Your Trash")
-user_input = st.text_input("What are you disposing of?", key="user_input", on_change=update_category).lower()
+user_input = st.text_input("What are you disposing of?", key="user_input", on_change=update_category)
 
 # Categorize user input
-category = categorize_waste_simple(user_input)
+category = categorize_waste_simple(user_input.lower())
 
 # Apply styles
 st.markdown(button_container_style, unsafe_allow_html=True)
@@ -103,4 +103,10 @@ st.markdown(buttons_html, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.header("Or, Show Us Your Trash")
-webrtc_streamer(key="trash-webcam")
+# Configuring RTC
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
+
+# Stream from the webcam
+webrtc_streamer(key="trash-webcam", rtc_configuration=RTC_CONFIGURATION, media_stream_constraints={"video": True})
