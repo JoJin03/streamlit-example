@@ -109,4 +109,7 @@ RTC_CONFIGURATION = RTCConfiguration(
 )
 
 # Stream from the webcam
-webrtc_streamer(key="trash-webcam", rtc_configuration=RTC_CONFIGURATION, media_stream_constraints={"video": True})
+try:
+    webrtc_streamer(key="trash-webcam", rtc_configuration=RTC_CONFIGURATION, media_stream_constraints={"video": True})
+except Exception as e:
+    st.error(f"Failed to load webcam: {e}")
