@@ -1,8 +1,39 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, RTCConfiguration
+from streamlit_webrtc import webrtc_streamer, RTCConfiguration, VideoTransformerBase
+
+import cv2
+import numpy as np
 
 # Corrected direct URL of your background image
 background_image_url = 'https://live.staticflickr.com/65535/53597581524_260942e41a_b.jpg'
+
+
+class ObjectFocusTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+        # Simple color detection for demonstration (detecting a blue object)
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        # Define the range of blue color in HSV
+        lower_blue = np.array([100,150,50])
+        upper_blue = np.array([140,255,255])
+        mask = cv2.inRange(hsv, lower_blue, upper_blue)
+        # Find contours to detect objects
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            # Optionally, filter out small objects by area
+            area = cv2.contourArea(contour)
+            if area > 500:  # Min area threshold
+                x, y, w, h = cv2.boundingRect(contour)
+                cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+        return img
+
+# Configuring RTC
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
 
 # Inject CSS for the background image using a placeholder
 background_placeholder = st.empty()
@@ -108,8 +139,6 @@ RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-# Stream from the webcam
-try:
-    webrtc_streamer(key="trash-webcam", rtc_configuration=RTC_CONFIGURATION, media_stream_constraints={"video": True})
-except Exception as e:
-    st.error(f"Failed to load webcam: {e}")
+webrtc_streamer(key="trash-webcam", rtc_configuration=RTC_CONFIGURATION, 
+                media_stream_constraints={"video": True}, 
+                video_transformer_factory=ObjectFocusTransformer)
