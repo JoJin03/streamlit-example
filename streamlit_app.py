@@ -12,19 +12,25 @@ class ObjectFocusTransformer(VideoTransformerBase):
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
 
-        # Simple color detection for demonstration (detecting a blue object)
+        # Convert to HSV color space
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        
         # Define the range of blue color in HSV
         lower_blue = np.array([100,150,50])
         upper_blue = np.array([140,255,255])
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
+        
+        # Apply morphological operations to reduce noise
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.erode(mask, kernel, iterations=2)
+        mask = cv2.dilate(mask, kernel, iterations=4)
+
         # Find contours to detect objects
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
         for contour in contours:
-            # Optionally, filter out small objects by area
             area = cv2.contourArea(contour)
-            if area > 500:  # Min area threshold
+            if area > 500:  # Increase the area if needed to filter out smaller objects
                 x, y, w, h = cv2.boundingRect(contour)
                 cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
